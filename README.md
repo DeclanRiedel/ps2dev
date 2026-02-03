@@ -1,6 +1,4 @@
-# PS2 Development Environment
-
-A complete Nix-based development environment for PlayStation 2 homebrew with gsKit.
+# PS2 Dev flake
 
 # Enter the development environment (verifies toolchain and shows commands)
 nix develop
@@ -16,8 +14,8 @@ nix run .#build-elf -- NAME
 # Build an ISO from NAME.elf
 nix run .#build-iso -- NAME
 ```
-
-# Load in PCSX2: File → Boot ELF → bin/demo.elf
+# Load in PCSX2: File → Boot ELF → bin/main.elf
+## pcsx2-emulator path/to/file.elf (note: idk sometimes it runs .elf as i think .iso and breaks?)
 
 ### Traditional Make Commands
 
@@ -33,9 +31,10 @@ make run
 -  Checks if PS2Dev toolchain is installed at `$HOME/ps2dev`
 -  Verifies critical components (EE compiler, PS2SDK, gsKit)
 -  Shows all available commands with descriptions
-- ⚠️Provides installation instructions if toolchain is missing
+-  Provides installation instructions if toolchain is missing
 
 ### Installing the Toolchain (if missing)
+#### See: https://github.com/ps2dev/ps2dev
 
 ```bash
 mkdir -p $HOME/ps2dev
