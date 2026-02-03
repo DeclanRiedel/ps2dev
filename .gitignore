@@ -1,0 +1,18 @@
+# Nix
+result
+result-*
+.direnv
+
+# PS2 Build artifacts
+*.o
+*.elf
+*.a
+
+# PS2Dev
+ps2dev/
+
+# IDE
+.vscode
+.idea
+*.swp
+*~
