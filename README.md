@@ -1,7 +1,9 @@
 # PS2 Dev flake
 
 # Enter the development environment (verifies toolchain and shows commands)
+```bash
 nix develop
+```
 
 ## Available Commands
 ```bash
@@ -15,7 +17,10 @@ nix run .#build-elf -- NAME
 nix run .#build-iso -- NAME
 ```
 # Load in PCSX2: File → Boot ELF → bin/main.elf
-## pcsx2-emulator path/to/file.elf (note: idk sometimes it runs .elf as i think .iso and breaks?)
+```bash
+pcsx2-emulator path/to/file.elf 
+```
+(note: idk sometimes it runs .elf as i think .iso and breaks?)
 
 ### Traditional Make Commands
 
