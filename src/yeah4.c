@@ -1,5 +1,6 @@
 #include <gsKit.h>
 #include <dmaKit.h>
+#include <libpad.h>
 #include <kernel.h>
 #include <math.h>
 #include <stdlib.h>
@@ -82,10 +83,9 @@ int check_collision(Dino *dino, Obstacle *obs) {
             dino_top < obs_bottom && dino_bottom > obs_top);
 }
 
-void update_game(GameState *game) {
+void update_game(GameState *game, u32 paddata) {
     if (game->game_over) {
-        // Auto-restart after 100 frames
-        if (game->frame_count % 100 == 0) {
+        if (paddata & PAD_CROSS) {
             init_game_state(game);
         }
         return;
@@ -99,8 +99,7 @@ void update_game(GameState *game) {
         if (game->game_speed > 15.0f) game->game_speed = 15.0f;
     }
     
-    // Auto-jump every 120 frames
-    if (game->frame_count % 120 == 0 && game->dino.is_grounded) {
+    if ((paddata & PAD_CROSS) && game->dino.is_grounded) {
         game->dino.vy = JUMP_FORCE;
         game->dino.is_jumping = 1;
         game->dino.is_grounded = 0;
@@ -158,7 +157,16 @@ int main(int argc, char *argv[])
     gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
     gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
     
-    // NO PAD INIT - Auto-play mode
+    // Initialize pad
+    padInit(0);
+    
+    int port = 0, slot = 0;
+    static unsigned char padArea[256] __attribute__((aligned(64)));
+    
+    padPortOpen(port, slot, padArea);
+    
+    // Small delay for pad init
+    for (volatile int i = 0; i < 10000; i++) { }
     
     // Initialize game
     GameState game;
@@ -171,15 +179,25 @@ int main(int argc, char *argv[])
     u64 dino_color = GS_SETREG_RGBAQ(180, 180, 180, 0x00, 0x00);
     u64 obs_color = GS_SETREG_RGBAQ(100, 60, 40, 0x00, 0x00);
     u64 star_color = GS_SETREG_RGBAQ(255, 255, 150, 0x00, 0x00);
+    u64 text_color = GS_SETREG_RGBAQ(50, 50, 50, 0x00, 0x00);
     u64 go_color = GS_SETREG_RGBAQ(200, 50, 50, 0x00, 0x00);
     
     // Star positions (fixed 20 stars)
     float star_x[20] = {50, 150, 250, 350, 450, 550, 100, 200, 300, 400, 500, 600, 75, 175, 275, 375, 475, 575, 125, 525};
     float star_y[20] = {30, 50, 40, 60, 35, 55, 80, 90, 70, 85, 75, 95, 120, 110, 130, 115, 125, 105, 150, 145};
     
+    int frame = 0;
+    
     while (1) {
-        // Update game (auto-play)
-        update_game(&game);
+        frame++;
+        
+        // Read pad
+        struct padButtonStatus buttons;
+        padRead(port, slot, &buttons);
+        u32 paddata = 0xFFFF ^ buttons.btns;
+        
+        // Update game
+        update_game(&game, paddata);
         
         // Clear screen
         gsKit_clear(gsGlobal, GS_SETREG_RGBAQ(200, 200, 210, 0x00, 0x00));
@@ -217,20 +235,36 @@ int main(int argc, char *argv[])
                          game.dino.x + DINO_WIDTH - 4, game.dino.y + 16.0f, 1, 
                          GS_SETREG_RGBAQ(0, 0, 0, 0x00, 0x00));
         
-        // Simple score indicator (white box)
-        gsKit_prim_sprite(gsGlobal, 500.0f, 20.0f, 620.0f, 60.0f, 1, 
-                         GS_SETREG_RGBAQ(255, 255, 255, 0x00, 0x00));
+        // Draw score (simple)
+        int score = game.score;
+        int score_x = 500;
+        if (score == 0) {
+            gsKit_prim_sprite(gsGlobal, 500.0f, 20.0f, 520.0f, 60.0f, 1, text_color);
+        } else {
+            while (score > 0 && score_x > 400) {
+                int digit = score % 10;
+                for (int d = 0; d < digit; d++) {
+                    gsKit_prim_sprite(gsGlobal, (float)score_x, 20.0f, (float)score_x + 5.0f, 60.0f, 1, text_color);
+                }
+                score /= 10;
+                score_x -= 20;
+            }
+        }
         
         // Game over text
         if (game.game_over) {
-            // Draw big red box
-            gsKit_prim_sprite(gsGlobal, 200.0f, 200.0f, 440.0f, 280.0f, 1, go_color);
+            // Draw "GAME" blocks
+            gsKit_prim_sprite(gsGlobal, 220.0f, 200.0f, 420.0f, 240.0f, 1, go_color);
+            // "OVER" blocks
+            gsKit_prim_sprite(gsGlobal, 220.0f, 250.0f, 420.0f, 290.0f, 1, go_color);
         }
         
         gsKit_sync_flip(gsGlobal);
         gsKit_queue_exec(gsGlobal);
         gsKit_queue_reset(gsGlobal->Per_Queue);
     }
+    
+    padPortClose(port, slot);
     
     return 0;
 }

@@ -203,7 +203,7 @@
            EE_LDFLAGS="$EE_LDFLAGS -L$PS2SDK/ee/lib/startup"
            EE_LDFLAGS="$EE_LDFLAGS -T$PS2SDK/ee/startup/linkfile"
            
-           EE_LIBS="-lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lm"
+            EE_LIBS="-lkernel -lcglue -lcdvd -lgskit -ldmakit -lpad -lpacket -lm"
            
            echo "Compiling..."
            $EE_CC $EE_CFLAGS -c "src/$NAME.c" -o "$NAME.o"

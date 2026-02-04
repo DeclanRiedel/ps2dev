@@ -1,5 +1,6 @@
 #include <gsKit.h>
 #include <dmaKit.h>
+#include <libpad.h>
 #include <kernel.h>
 #include <math.h>
 #include <stdlib.h>
@@ -82,10 +83,9 @@ int check_collision(Dino *dino, Obstacle *obs) {
             dino_top < obs_bottom && dino_bottom > obs_top);
 }
 
-void update_game(GameState *game) {
+void update_game(GameState *game, u32 paddata) {
     if (game->game_over) {
-        // Auto-restart after 100 frames
-        if (game->frame_count % 100 == 0) {
+        if (paddata & PAD_CROSS) {
             init_game_state(game);
         }
         return;
@@ -99,8 +99,7 @@ void update_game(GameState *game) {
         if (game->game_speed > 15.0f) game->game_speed = 15.0f;
     }
     
-    // Auto-jump every 120 frames
-    if (game->frame_count % 120 == 0 && game->dino.is_grounded) {
+    if ((paddata & PAD_CROSS) && game->dino.is_grounded) {
         game->dino.vy = JUMP_FORCE;
         game->dino.is_jumping = 1;
         game->dino.is_grounded = 0;
@@ -137,6 +136,38 @@ void update_game(GameState *game) {
     }
 }
 
+// Stars for the sky
+typedef struct {
+    float x, y;
+    u8 brightness;
+} Star;
+
+Star stars[50];
+
+void init_stars(void) {
+    for (int i = 0; i < 50; i++) {
+        stars[i].x = (float)(rand() % 640);
+        stars[i].y = (float)(rand() % 240);
+        stars[i].brightness = 150 + (rand() % 105);
+    }
+}
+
+void draw_sky(GSGLOBAL *gsGlobal) {
+    // Static gradient sky - dark blue at top, lighter at horizon
+    for (int y = 0; y < 240; y += 8) {
+        float t = (float)y / 240.0f;
+        u8 blue = (u8)(60 + t * 80);
+        u64 sky_color = GS_SETREG_RGBAQ(10, 20, blue, 0x00, 0x00);
+        gsKit_prim_sprite(gsGlobal, 0.0f, (float)y, 640.0f, (float)y + 8.0f, 1, sky_color);
+    }
+    
+    // Draw stars
+    for (int i = 0; i < 50; i++) {
+        u64 star_color = GS_SETREG_RGBAQ(stars[i].brightness, stars[i].brightness, 100, 0x00, 0x00);
+        gsKit_prim_sprite(gsGlobal, stars[i].x, stars[i].y, stars[i].x + 2.0f, stars[i].y + 2.0f, 1, star_color);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     GSGLOBAL *gsGlobal = gsKit_init_global();
@@ -158,41 +189,48 @@ int main(int argc, char *argv[])
     gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
     gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
     
-    // NO PAD INIT - Auto-play mode
+    // Initialize pad
+    padInit(0);
+    
+    int port = 0, slot = 0;
+    static unsigned char padArea[256] __attribute__((aligned(64)));
+    
+    padPortOpen(port, slot, padArea);
+    
+    // Small delay for pad init
+    for (int i = 0; i < 1000; i++) { }
     
     // Initialize game
     GameState game;
     init_game_state(&game);
     
+    // Initialize stars
+    init_stars();
+    
     // Colors
-    u64 sky_dark = GS_SETREG_RGBAQ(10, 20, 60, 0x00, 0x00);
-    u64 sky_light = GS_SETREG_RGBAQ(10, 20, 120, 0x00, 0x00);
     u64 ground_color = GS_SETREG_RGBAQ(30, 80, 40, 0x00, 0x00);
     u64 dino_color = GS_SETREG_RGBAQ(180, 180, 180, 0x00, 0x00);
     u64 obs_color = GS_SETREG_RGBAQ(100, 60, 40, 0x00, 0x00);
-    u64 star_color = GS_SETREG_RGBAQ(255, 255, 150, 0x00, 0x00);
-    u64 go_color = GS_SETREG_RGBAQ(200, 50, 50, 0x00, 0x00);
+    u64 text_color = GS_SETREG_RGBAQ(50, 50, 50, 0x00, 0x00);
     
-    // Star positions (fixed 20 stars)
-    float star_x[20] = {50, 150, 250, 350, 450, 550, 100, 200, 300, 400, 500, 600, 75, 175, 275, 375, 475, 575, 125, 525};
-    float star_y[20] = {30, 50, 40, 60, 35, 55, 80, 90, 70, 85, 75, 95, 120, 110, 130, 115, 125, 105, 150, 145};
+    int frame = 0;
     
     while (1) {
-        // Update game (auto-play)
-        update_game(&game);
+        frame++;
+        
+        // Read pad
+        struct padButtonStatus buttons;
+        padRead(port, slot, &buttons);
+        u32 paddata = 0xFFFF ^ buttons.btns;
+        
+        // Update game
+        update_game(&game, paddata);
         
         // Clear screen
         gsKit_clear(gsGlobal, GS_SETREG_RGBAQ(200, 200, 210, 0x00, 0x00));
         
-        // Draw sky (simple 3-layer gradient)
-        gsKit_prim_sprite(gsGlobal, 0.0f, 0.0f, 640.0f, 80.0f, 1, sky_dark);
-        gsKit_prim_sprite(gsGlobal, 0.0f, 80.0f, 640.0f, 160.0f, 1, GS_SETREG_RGBAQ(10, 20, 90, 0x00, 0x00));
-        gsKit_prim_sprite(gsGlobal, 0.0f, 160.0f, 640.0f, GROUND_Y, 1, sky_light);
-        
-        // Draw stars (just 20 small dots)
-        for (int i = 0; i < 20; i++) {
-            gsKit_prim_sprite(gsGlobal, star_x[i], star_y[i], star_x[i] + 2.0f, star_y[i] + 2.0f, 1, star_color);
-        }
+        // Draw sky with gradient and stars
+        draw_sky(gsGlobal);
         
         // Draw solid dark green ground
         gsKit_prim_sprite(gsGlobal, 0.0f, GROUND_Y, 640.0f, 480.0f, 1, ground_color);
@@ -217,20 +255,73 @@ int main(int argc, char *argv[])
                          game.dino.x + DINO_WIDTH - 4, game.dino.y + 16.0f, 1, 
                          GS_SETREG_RGBAQ(0, 0, 0, 0x00, 0x00));
         
-        // Simple score indicator (white box)
-        gsKit_prim_sprite(gsGlobal, 500.0f, 20.0f, 620.0f, 60.0f, 1, 
-                         GS_SETREG_RGBAQ(255, 255, 255, 0x00, 0x00));
+        // Draw score (simple digit blocks)
+        int score = game.score;
+        int digits[6] = {0};
+        int num_digits = 0;
+        if (score == 0) {
+            digits[0] = 0;
+            num_digits = 1;
+        } else {
+            while (score > 0 && num_digits < 6) {
+                digits[num_digits++] = score % 10;
+                score /= 10;
+            }
+        }
+        
+        float score_x = 500.0f;
+        for (int i = num_digits - 1; i >= 0; i--) {
+            int digit = digits[i];
+            // Simple 3x5 digit patterns
+            for (int row = 0; row < 5; row++) {
+                for (int col = 0; col < 3; col++) {
+                    int draw = 0;
+                    switch (digit) {
+                        case 0: draw = (row == 0 || row == 4 || col == 0 || col == 2); break;
+                        case 1: draw = (col == 1); break;
+                        case 2: draw = (row == 0 || row == 2 || row == 4 || 
+                                      (col == 2 && row < 2) || (col == 0 && row > 2)); break;
+                        case 3: draw = (row == 0 || row == 2 || row == 4 || col == 2); break;
+                        case 4: draw = (col == 1 || row == 2 || (col == 2 && row < 2)); break;
+                        case 5: draw = (row == 0 || row == 2 || row == 4 || 
+                                      (col == 0 && row < 2) || (col == 2 && row > 2)); break;
+                        case 6: draw = (row == 0 || row == 2 || row == 4 || col == 0 || 
+                                      (col == 2 && row > 2)); break;
+                        case 7: draw = (row == 0 || col == 2); break;
+                        case 8: draw = (row == 0 || row == 2 || row == 4 || col == 0 || col == 2); break;
+                        case 9: draw = (row == 0 || row == 2 || row == 4 || 
+                                      (col == 0 && row < 2) || col == 2); break;
+                    }
+                    if (draw) {
+                        gsKit_prim_sprite(gsGlobal, score_x + col * 8, 20.0f + row * 8,
+                                         score_x + col * 8 + 6, 20.0f + row * 8 + 6, 1, text_color);
+                    }
+                }
+            }
+            score_x += 25.0f;
+        }
         
         // Game over text
         if (game.game_over) {
-            // Draw big red box
-            gsKit_prim_sprite(gsGlobal, 200.0f, 200.0f, 440.0f, 280.0f, 1, go_color);
+            u64 go_color = GS_SETREG_RGBAQ(200, 50, 50, 0x00, 0x00);
+            // Draw "GAME" blocks
+            for (int i = 0; i < 4; i++) {
+                gsKit_prim_sprite(gsGlobal, 220.0f + i * 50, 200.0f,
+                                 220.0f + i * 50 + 40, 240.0f, 1, go_color);
+            }
+            // "OVER" blocks
+            for (int i = 0; i < 4; i++) {
+                gsKit_prim_sprite(gsGlobal, 220.0f + i * 50, 250.0f,
+                                 220.0f + i * 50 + 40, 290.0f, 1, go_color);
+            }
         }
         
         gsKit_sync_flip(gsGlobal);
         gsKit_queue_exec(gsGlobal);
         gsKit_queue_reset(gsGlobal->Per_Queue);
     }
+    
+    padPortClose(port, slot);
     
     return 0;
 }
