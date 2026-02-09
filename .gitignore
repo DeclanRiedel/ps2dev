@@ -7,9 +7,8 @@ result-*
 *.o
 *.elf
 *.a
-
-# PS2Dev
-ps2dev/
+src/
+bin/
 
 # IDE
 .vscode

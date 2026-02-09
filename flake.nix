@@ -10,14 +10,14 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        
+
         # PS2Dev profile script
         ps2devProfile = pkgs.writeText "ps2dev-profile" ''
           export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
-          
+
           setup_ps2dev_toolchain() {
             if [ ! -d "$PS2DEV/ee" ]; then
               echo "Setting up PS2Dev toolchain on first use..."
@@ -30,10 +30,10 @@
               echo ""
             fi
           }
-          
+
           # Auto-setup on shell entry
           setup_ps2dev_toolchain
-          
+
           echo ""
           echo "╔══════════════════════════════════════════════════════════════╗"
           echo "║           PS2 Development Environment                         ║"
@@ -41,14 +41,14 @@
           echo ""
           echo "Toolchain Location: $PS2DEV"
           echo ""
-          
+
           # Quick verification
           if [ -d "$PS2DEV/ee" ] && [ -f "$PS2DEV/ee/bin/mips64r5900el-ps2-elf-gcc" ]; then
             echo "Toolchain: VERIFIED"
           else
             echo "⚠️  Toolchain: NOT FOUND"
           fi
-          
+
           echo ""
           echo "╔══════════════════════════════════════════════════════════════╗"
           echo "║                    Available Commands                        ║"
@@ -86,13 +86,13 @@
         buildScript = pkgs.writeShellScriptBin "build-ps2" ''
           set -e
           TARGET="''${1:-demo}"
-          
+
           # Set up environment
           export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
-          
+
           # Use make to build
           make TARGET="$TARGET" all
         '';
@@ -101,16 +101,16 @@
         runScript = pkgs.writeShellScriptBin "run-ps2" ''
           set -e
           TARGET="''${1:-demo}"
-          
+
           # Set up environment
           export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
-          
+
           # Build first
           make TARGET="$TARGET" all
-          
+
           # Try to run in PCSX2
           if command -v pcsx2-emulator &> /dev/null; then
             echo "Built ELF: $TARGET.elf"
@@ -145,21 +145,21 @@
          buildElfScript = pkgs.writeShellScriptBin "build-elf-ps2" ''
            set -e
            NAME="''${1:-demo}"
-           
+
            # Set up environment
            export PS2DEV=$HOME/.ps2dev
            export PS2SDK=$PS2DEV/ps2sdk
            export GSKIT=$PS2DEV/gsKit
            export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
-           
+
            # Ensure directories exist
            mkdir -p src bin
-           
+
            echo "=========================================="
            echo "  Building PS2 ELF: $NAME"
            echo "=========================================="
            echo ""
-           
+
            # Determine source file
            if [ -f "main.c" ]; then
              SOURCE_FILE="main.c"
@@ -172,22 +172,22 @@
              echo "Looking for: main.c, src/$NAME.c, or $NAME.c"
              exit 1
            fi
-           
+
            echo "Source: $SOURCE_FILE"
            echo "Building: bin/$NAME.elf"
            echo ""
-           
+
            # Copy source to src/ if it's not already there
            if [ "$SOURCE_FILE" != "src/$NAME.c" ]; then
              cp "$SOURCE_FILE" "src/$NAME.c"
              echo "✓ Copied source to src/$NAME.c"
            fi
-           
+
            # Compile directly
            PS2DEV=$HOME/.ps2dev
            PS2SDK=$PS2DEV/ps2sdk
            GSKIT=$PS2DEV/gsKit
-           
+
            EE_CC=mips64r5900el-ps2-elf-gcc
            EE_CFLAGS="-D_EE -O2 -G0 -Wall"
            EE_CFLAGS="$EE_CFLAGS -I$PS2SDK/ee/include"
@@ -196,28 +196,28 @@
            EE_CFLAGS="$EE_CFLAGS -I$GSKIT/include"
            EE_CFLAGS="$EE_CFLAGS -I$GSKIT/ee/gs/include"
            EE_CFLAGS="$EE_CFLAGS -I$GSKIT/ee/include"
-           
+
            EE_LDFLAGS="-L$PS2SDK/ee/lib"
            EE_LDFLAGS="$EE_LDFLAGS -L$PS2DEV/ee/lib"
            EE_LDFLAGS="$EE_LDFLAGS -L$GSKIT/lib"
            EE_LDFLAGS="$EE_LDFLAGS -L$PS2SDK/ee/lib/startup"
            EE_LDFLAGS="$EE_LDFLAGS -T$PS2SDK/ee/startup/linkfile"
-           
+
            EE_LIBS="-lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lm"
-           
+
            echo "Compiling..."
            $EE_CC $EE_CFLAGS -c "src/$NAME.c" -o "$NAME.o"
-           
+
            # Copy object file to src/
            cp "$NAME.o" "src/$NAME.o"
            echo "✓ Copied object file to src/$NAME.o"
-           
+
            echo "Linking..."
            $EE_CC $EE_LDFLAGS -o "bin/$NAME.elf" "$NAME.o" $EE_LIBS
-           
+
            # Clean up temporary object file
            rm -f "$NAME.o"
-           
+
            if [ -f "bin/$NAME.elf" ]; then
              echo ""
              echo "Build successful!"
@@ -230,21 +230,21 @@
            fi
          '';
 
-         # Build ISO script  
+         # Build ISO script
          buildIsoScript = pkgs.writeShellScriptBin "build-iso-ps2" ''
            set -e
            NAME="''${1:-demo}"
-           
+
            export PS2DEV=$HOME/.ps2dev
            export PS2SDK=$PS2DEV/ps2sdk
            export GSKIT=$PS2DEV/gsKit
            export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
-           
+
            echo "=========================================="
            echo "  Building PS2 ISO: $NAME"
            echo "=========================================="
            echo ""
-           
+
            # Check if ELF exists
            if [ ! -f "bin/$NAME.elf" ]; then
              echo "Error: bin/$NAME.elf not found!"
@@ -253,10 +253,10 @@
              echo "nix run .#build -- $NAME"
              exit 1
            fi
-           
+
            echo "Creating: bin/$NAME.iso"
            echo ""
-           
+
            # Note: mkisofs may not be available - inform user
            echo "⚠️  ISO creation requires cdrtools package"
            echo "ELF is ready at: bin/$NAME.elf"
@@ -275,7 +275,6 @@
            clean = cleanScript;
            clean-all = cleanAllScript;
          };
-
          apps = {
            build-elf = {
              type = "app";
