@@ -1,49 +1,46 @@
 # PS2 Dev flake
 
-# Enter the development environment (verifies toolchain and shows commands)
+## Quick Start
+
+**First time setup - run once to download the PS2 toolchain (~250MB):**
 ```bash
 nix develop
+# Toolchain will auto-download to $HOME/.ps2dev
+# Exit shell when done: exit
 ```
 
-## Available Commands
+**Build your project:**
 ```bash
-# Clean build artifacts in current directory
-nix run .#clean
-# Clean all build artifacts (current/, src/, bin/)
-nix run .#clean-all
-# Build an ELF from main.c (or src/NAME.c)
-nix run .#build-elf -- NAME
-# Build an ISO from NAME.elf
-nix run .#build-iso -- NAME
+nix run .#build-elf -- exam
+# Output: bin/exam.elf
 ```
-# Load in PCSX2: File → Boot ELF → bin/main.elf
+
+**Available commands:**
 ```bash
-pcsx2-emulator path/to/file.elf 
+nix run .#clean         Clean build artifacts
+nix run .#clean-all     Clean all (current/, src/, bin/)
+nix run .#build-elf -- NAME  Build NAME.elf from main.c
+nix run .#build-iso -- NAME  Build NAME.iso from NAME.elf
 ```
-(note: idk sometimes it runs .elf as i think .iso and breaks?)
 
-### Traditional Make Commands
+## Running in PCSX2
 
 ```bash
-# Using the Makefile directly
-make all
-make clean
-
-# Run PCSX2 (opens GUI - load ELF manually)
-make run
+pcsx2-emulator bin/exam.elf
 ```
-## Toolchain Verification
--  Checks if PS2Dev toolchain is installed at `$HOME/ps2dev`
--  Verifies critical components (EE compiler, PS2SDK, gsKit)
--  Shows all available commands with descriptions
--  Provides installation instructions if toolchain is missing
 
-### Installing the Toolchain (if missing)
-#### See: https://github.com/ps2dev/ps2dev
+Or via GUI: File → Boot ELF → select `bin/exam.elf`
+
+## Toolchain Location
+
+The PS2Dev toolchain is installed at:
+- **$HOME/.ps2dev/** - Toolchain directory (auto-downloaded)
+
+## Manual Toolchain Installation (if auto-setup fails)
 
 ```bash
-mkdir -p $HOME/ps2dev
-cd $HOME/ps2dev
+mkdir -p $HOME/.ps2dev
+cd $HOME/.ps2dev
 curl -o ps2dev-latest.tar.gz -LC - https://github.com/ps2dev/ps2dev/releases/download/latest/ps2dev-ubuntu-latest.tar.gz
 tar -xf ps2dev-latest.tar.gz --strip-components 1
 rm ps2dev-latest.tar.gz

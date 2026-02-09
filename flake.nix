@@ -13,7 +13,7 @@
         
         # PS2Dev profile script
         ps2devProfile = pkgs.writeText "ps2dev-profile" ''
-          export PS2DEV=$HOME/ps2dev
+          export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
@@ -88,7 +88,7 @@
           TARGET="''${1:-demo}"
           
           # Set up environment
-          export PS2DEV=$HOME/ps2dev
+          export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
@@ -103,7 +103,7 @@
           TARGET="''${1:-demo}"
           
           # Set up environment
-          export PS2DEV=$HOME/ps2dev
+          export PS2DEV=$HOME/.ps2dev
           export PS2SDK=$PS2DEV/ps2sdk
           export GSKIT=$PS2DEV/gsKit
           export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
@@ -147,7 +147,7 @@
            NAME="''${1:-demo}"
            
            # Set up environment
-           export PS2DEV=$HOME/ps2dev
+           export PS2DEV=$HOME/.ps2dev
            export PS2SDK=$PS2DEV/ps2sdk
            export GSKIT=$PS2DEV/gsKit
            export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
@@ -184,7 +184,7 @@
            fi
            
            # Compile directly
-           PS2DEV=$HOME/ps2dev
+           PS2DEV=$HOME/.ps2dev
            PS2SDK=$PS2DEV/ps2sdk
            GSKIT=$PS2DEV/gsKit
            
@@ -235,7 +235,7 @@
            set -e
            NAME="''${1:-demo}"
            
-           export PS2DEV=$HOME/ps2dev
+           export PS2DEV=$HOME/.ps2dev
            export PS2SDK=$PS2DEV/ps2sdk
            export GSKIT=$PS2DEV/gsKit
            export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin
