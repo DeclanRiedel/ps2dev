@@ -58,6 +58,7 @@
           echo "  nix run .#clean-all          Clean all (current/, src/, bin/)"
           echo "  nix run .#build-elf -- NAME  Build NAME.elf → bin/ + src/"
           echo "  nix run .#build-iso -- NAME  Build NAME.iso → bin/"
+          echo "  nix run .#test-controller    Test USB controller input"
           echo ""
           echo "═══════════════════════════════════════════════════════════════"
           echo ""
@@ -80,6 +81,8 @@
               pkgs.evtest
               pkgs.joystickwake
               pkgs.linuxConsoleTools
+              pkgs.sdl2-compat
+              pkgs.python3
             ];
             profile = ps2devProfile;
             runScript = "bash";
@@ -138,13 +141,54 @@
          '';
 
          # Clean-all script
-         cleanAllScript = pkgs.writeShellScriptBin "clean-all-ps2" ''
-           make clean
-           rm -rf bin/* src/* 2>/dev/null || true
-           echo "✓ Cleaned all directories (current/, src/, bin/)"
-         '';
+          cleanAllScript = pkgs.writeShellScriptBin "clean-all-ps2" ''
+            make clean
+            rm -rf bin/* src/* 2>/dev/null || true
+            echo "✓ Cleaned all directories (current/, src/, bin/)"
+          '';
 
-         # Build ELF script
+          # Test controller script
+          testControllerScript = pkgs.writeShellScriptBin "test-controller" ''
+            set -e
+            echo "=========================================="
+            echo "Controller Input Test"
+            echo "=========================================="
+            echo ""
+
+            # Add linuxconsoletools to PATH
+            export PATH="${pkgs.linuxConsoleTools}/bin:$PATH"
+
+            # Check if controller exists
+            if [ ! -e /dev/input/js0 ]; then
+              echo "✗ No controller found at /dev/input/js0"
+              echo ""
+              echo "Make sure your controller is plugged in."
+              exit 1
+            fi
+
+            echo "✓ Controller found: $(ls -la /dev/input/js0 | awk '{print $NF}')"
+            echo ""
+
+            # Check permissions
+            if [ -r /dev/input/js0 ]; then
+              echo "✓ Can read from controller"
+            else
+              echo "✗ Permission denied reading controller"
+              echo ""
+              echo "Fix with: sudo usermod -a -G input \$USER"
+              echo "Then logout and login again"
+              exit 1
+            fi
+
+            echo ""
+            echo "Testing controller input - press buttons! (Ctrl+C to exit)"
+            echo ""
+
+            # Run jstest
+            exec jstest /dev/input/js0
+          '';
+
+          # Build ELF script
          buildElfScript = pkgs.writeShellScriptBin "build-elf-ps2" ''
            set -e
            NAME="''${1:-demo}"
@@ -269,41 +313,46 @@
       in {
         devShells.default = ps2devEnv;
 
-         packages = {
-           default = self.packages.${system}.build-elf;
-           build-elf = buildElfScript;
-           build-iso = buildIsoScript;
-           build = buildScript;
-           run = runScript;
-           clean = cleanScript;
-           clean-all = cleanAllScript;
-         };
-         apps = {
-           build-elf = {
-             type = "app";
-             program = "${buildElfScript}/bin/build-elf-ps2";
-           };
-           build-iso = {
-             type = "app";
-             program = "${buildIsoScript}/bin/build-iso-ps2";
-           };
-           build = {
-             type = "app";
-             program = "${buildScript}/bin/build-ps2";
-           };
-           run = {
-             type = "app";
-             program = "${runScript}/bin/run-ps2";
-           };
-           clean = {
-             type = "app";
-             program = "${cleanScript}/bin/clean-ps2";
-           };
-           "clean-all" = {
-             type = "app";
-             program = "${cleanAllScript}/bin/clean-all-ps2";
-           };
-         };
+          packages = {
+            default = self.packages.${system}.build-elf;
+            build-elf = buildElfScript;
+            build-iso = buildIsoScript;
+            build = buildScript;
+            run = runScript;
+            clean = cleanScript;
+            clean-all = cleanAllScript;
+            test-controller = testControllerScript;
+          };
+          apps = {
+            build-elf = {
+              type = "app";
+              program = "${buildElfScript}/bin/build-elf-ps2";
+            };
+            build-iso = {
+              type = "app";
+              program = "${buildIsoScript}/bin/build-iso-ps2";
+            };
+            build = {
+              type = "app";
+              program = "${buildScript}/bin/build-ps2";
+            };
+            run = {
+              type = "app";
+              program = "${runScript}/bin/run-ps2";
+            };
+            clean = {
+              type = "app";
+              program = "${cleanScript}/bin/clean-ps2";
+            };
+            "clean-all" = {
+              type = "app";
+              program = "${cleanAllScript}/bin/clean-all-ps2";
+            };
+            "test-controller" = {
+              type = "app";
+              program = "${testControllerScript}/bin/test-controller";
+            };
+          };
       }
     );
 }

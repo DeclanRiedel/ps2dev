@@ -9,6 +9,8 @@ result-*
 *.a
 src/
 bin/
+tools/controller_test
+tools/*.o
 
 # IDE
 .vscode

@@ -60,9 +60,7 @@ u32 old_buttons = 0;
 int main(int argc, char *argv[]) {
   // ###########################//
   //  Input + Timing
-
   printf("Phase 1: Input + Timing\n");
-
   init_pad();
 
   while (1) {
@@ -84,7 +82,6 @@ int main(int argc, char *argv[]) {
       while (!(*(volatile unsigned int *)0x12000000 & 0x08));
     }
   }
-
   return 0;
 }
 
