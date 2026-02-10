@@ -40,7 +40,7 @@ EE_LDFLAGS += -L$(PS2SDK)/ee/lib/startup
 EE_LDFLAGS += -T$(PS2SDK)/ee/startup/linkfile
 
 # Libraries (startup code is handled by linker script)
-EE_LIBS = -lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lm
+EE_LIBS = -lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lpad -lm
 
 # Source files
 EE_SRC = main.c

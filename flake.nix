@@ -63,24 +63,27 @@
           echo ""
          '';
 
-         # PS2Dev environment using FHS for prebuilt binaries
-         ps2devEnv = pkgs.buildFHSEnv {
-           name = "ps2dev-env";
-           targetPkgs = pkgs: [
-             pkgs.bash
-             pkgs.coreutils
-             pkgs.gzip
-             pkgs.gnutar
-             pkgs.curl
-             pkgs.git
-             pkgs.gnumake
-             pkgs.cmake
-             pkgs.gcc
-             pkgs.cdrtools
-           ];
-           profile = ps2devProfile;
-           runScript = "bash";
-         };
+          # PS2Dev environment using FHS for prebuilt binaries
+          ps2devEnv = pkgs.buildFHSEnv {
+            name = "ps2dev-env";
+            targetPkgs = pkgs: [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.gzip
+              pkgs.gnutar
+              pkgs.curl
+              pkgs.git
+              pkgs.gnumake
+              pkgs.cmake
+              pkgs.gcc
+              pkgs.cdrtools
+              pkgs.evtest
+              pkgs.joystickwake
+              pkgs.linuxConsoleTools
+            ];
+            profile = ps2devProfile;
+            runScript = "bash";
+          };
 
         # Build script that uses make
         buildScript = pkgs.writeShellScriptBin "build-ps2" ''
@@ -203,7 +206,7 @@
            EE_LDFLAGS="$EE_LDFLAGS -L$PS2SDK/ee/lib/startup"
            EE_LDFLAGS="$EE_LDFLAGS -T$PS2SDK/ee/startup/linkfile"
 
-           EE_LIBS="-lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lm"
+            EE_LIBS="-lkernel -lcglue -lcdvd -lgskit -ldmakit -lpacket -lpad -lm"
 
            echo "Compiling..."
            $EE_CC $EE_CFLAGS -c "src/$NAME.c" -o "$NAME.o"
