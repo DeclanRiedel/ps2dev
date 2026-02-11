@@ -131,3 +131,6 @@ curl -o ps2dev-latest.tar.gz -LC - https://github.com/ps2dev/ps2dev/releases/dow
 tar -xf ps2dev-latest.tar.gz --strip-components 1
 rm ps2dev-latest.tar.gz
 ```
+
+## pickup test controller from ubuntu idk
+sudo snap connect pcsx2-emulator:joystick
