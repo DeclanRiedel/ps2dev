@@ -65,28 +65,90 @@
          '';
 
           # PS2Dev environment using FHS for prebuilt binaries
-          ps2devEnv = pkgs.buildFHSEnv {
-            name = "ps2dev-env";
-            targetPkgs = pkgs: [
-              pkgs.bash
-              pkgs.coreutils
-              pkgs.gzip
-              pkgs.gnutar
-              pkgs.curl
-              pkgs.git
-              pkgs.gnumake
-              pkgs.cmake
-              pkgs.gcc
-              pkgs.cdrtools
-              pkgs.evtest
-              pkgs.joystickwake
-              pkgs.linuxConsoleTools
-              pkgs.sdl2-compat
-              pkgs.python3
-            ];
-            profile = ps2devProfile;
-            runScript = "bash";
-          };
+           ps2devEnv = pkgs.buildFHSEnv {
+             name = "ps2dev-env";
+             targetPkgs = pkgs: [
+               pkgs.bash
+               pkgs.coreutils
+               pkgs.gzip
+               pkgs.gnutar
+               pkgs.curl
+               pkgs.git
+               pkgs.gnumake
+               pkgs.cmake
+               pkgs.gcc
+               pkgs.cdrtools
+               pkgs.evtest
+               pkgs.joystickwake
+               pkgs.linuxConsoleTools
+               pkgs.sdl2-compat
+               pkgs.python3
+             ];
+             profile = ps2devProfile;
+             runScript = "bash";
+           };
+
+          # PCSX2 build environment
+           pcsx2Env = pkgs.mkShell {
+             buildInputs = with pkgs;
+               with qt6;
+               with xorg; [
+                 curl
+                 extra-cmake-modules
+                 ffmpeg
+                 libaio
+                 libbacktrace
+                 libpcap
+                 libwebp
+                 libXrandr
+                 lz4
+                 qtbase
+                 qtsvg
+                 qttools
+                 qtwayland
+                 SDL2
+                 shaderc
+                 soundtouch
+                 vulkan-headers
+                 wayland
+                 zstd
+                 clang
+                 lld
+               ];
+
+             nativeBuildInputs = with pkgs;
+               with qt6; [
+                 cmake
+                 pkg-config
+                 strip-nondeterminism
+                 wrapQtAppsHook
+                 zip
+               ];
+
+             qtWrapperArgs = let
+               libs = with pkgs;
+                 lib.makeLibraryPath
+                   ([ vulkan-loader shaderc ] ++ cubeb.passthru.backendLibs);
+             in [ "--prefix LD_LIBRARY_PATH : ${libs}" ];
+
+             shellHook = ''
+               if [ ! -d "$(pwd)/pcsx2" ]; then
+                 echo "pcsx2 not cloned, cloning..."
+                 git clone git@github.com:PCSX2/pcsx2.git
+               fi
+               if [ ! -d "$(pwd)/pcsx2/build" ]; then
+                 echo "pcsx2 not configured, configuring..."
+                 cd pcsx2
+                 cmake -B build -DDISABLE_ADVANCE_SIMD=true -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_EXE_LINKER_FLAGS_INIT="-fuse-ld=lld" -DCMAKE_MODULE_LINKER_FLAGS_INIT="-fuse-ld" -DCMAKE_SHARED_LINKER_FLAGS_INIT="-fuse-ld=lld" -DCMAKE_PREFIX_PATH="$PWD/deps" -GNinja
+                 cd ..
+               fi
+
+               bashdir=$(mktemp -d)
+               makeWrapper "$(type -p bash)" "$bashdir/bash" "''${qtWrapperArgs[@]}"
+               export NIX_ENFORCE_PURITY=0
+               exec "$bashdir/bash"
+             '';
+           };
 
         # Build script that uses make
         buildScript = pkgs.writeShellScriptBin "build-ps2" ''
@@ -312,6 +374,7 @@
 
       in {
         devShells.default = ps2devEnv;
+        devShells.pcsx2 = pcsx2Env;
 
           packages = {
             default = self.packages.${system}.build-elf;
