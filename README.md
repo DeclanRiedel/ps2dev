@@ -1,6 +1,7 @@
 # PS2 Development Environment
 
 PlayStation 2 development environment with Nix flakes, PS2Dev toolchain, and controller support.
+https://ps2dev.github.io/ps2sdk/index.html
 
 ## Quick Start
 
